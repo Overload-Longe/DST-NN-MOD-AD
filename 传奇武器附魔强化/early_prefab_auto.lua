@@ -1,0 +1,1 @@
+﻿-- early_prefab_auto.lua（测试占位）

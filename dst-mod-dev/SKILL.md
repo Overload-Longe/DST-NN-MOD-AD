@@ -11,12 +11,12 @@ description: >
   人物/角色 Mod（新角色、原版角色增强、技能树、角色专属 UI）适配与分析也进入本技能。
   不使用：纯游戏玩法/攻略咨询（与 Mod 无关）、非 Mod 向的通用 Lua 教学、
   其他游戏（非 DST）的 Mod 问题。
-version: 1.9.8
+version: 1.9.9
 ---
 
 # DST Mod 开发与排障
 
-> 整理：神似 ｜ 版本：1.9.8（已融入 dst-mod-creater v1.2 配套知识库；丰耘秘境实战沉淀见 §7.30；猪镇房子柠版 nil 防护全景见 §7.31；柠版打包规范实证沉淀见 §8；工具 v1.5.2 防御规则 SpawnPrefab 链式判空；v1.5.1 rmtree 安全守卫）
+> 整理：神似 ｜ 版本：1.9.9（已融入 dst-mod-creater v1.2 配套知识库；丰耘秘境实战沉淀见 §7.30；猪镇房子柠版 nil 防护全景见 §7.31；柠版打包规范实证沉淀见 §8；工具 v1.5.2 防御规则 SpawnPrefab 链式判空；v1.5.1 rmtree 安全守卫；传奇武器附魔强化闪退全案见 §7.33：inventoryitem SetPristine 时序/prefab 文件内 AddInventoryItemAtlas/图标 fallback 空纹理/多 mod player_classified 冲突；柠版跃迁/传送通道全案见 §7.34：状态机组件链三级 nil→GoToState 不可行、普通 Mod RPC 单通道终选、消耗复用 BlinkIn/BlinkOut、strict 局部变量自引用坑、兜底 return {} 卡交互铁律）
 
 ## 何时使用 / 何时不用（触发边界）
 
@@ -289,3 +289,71 @@ GetAttacked 中间环节（attackdodger/inventory/SpDefense）会把 spdamage �
 **Insight/全能信息面板注入失效排查（dyc_panel_compat）**：验证链路 = DYCInfoPanel 全局 → objectDetailWindow → SetObjectDetail(data) → data.lines。铁律：词条注册成功日志（modmain 阶段）≠ mod 存活；prefab 加载（LoadPrefabFile 更晚）失败会整体禁 mod → 注入必失效。先搜 Disabling <mod> 排除上游，再查 hook 链路。
 
 **同族沉淀**：①召唤依赖外部模组的 boss（prefab 缺失）→ Spawn 内显式 Say 提示 content 最后一行，勿静默；②UI GetImageAsset 自动解析的 mod 自定义 prefab 图标 → 显式补 custom_xml/custom_tex（图集 region 名=文件名.tex）；③删音频优化体积 = 删 fev/fsb 文件 + 删 Asset 声明 + 代码 PlaySound 保留（接口保留，静默不播不崩）。
+
+### 7.33 ★ inventoryitem 组件时序 + prefab 加载失败（传奇武器附魔强化闪退全案，v3.22 实证）
+
+**① SetPristine 前加 inventoryitem = 前端 Spawn 即崩（instance_0 报 inventoryitem.lua:10 attempt to index field 'inventoryitem'）**
+- 机制：柠版前端（instance_0 加载/物品预览/图鉴）也会执行 prefab fn（Spawn 预览）；SetPristine 前 AddComponent("inventoryitem") → _ctor 里 self.owner=nil 触发 strict class __newindex（字段未就绪）→ 崩。
+- 修复：inventoryitem 必须 **SetPristine 后添加**（客机 fn 提前 return，不实例化组件）。
+
+**② prefab 文件内 AddInventoryItemAtlas → "prefab file is not callable"（加载失败 ≠ 语法错误）**
+- 现象：`[PREFAB][ERR] prefab file is not callable` → 文件所有 prefab 未注册 → 物品消失；LuaJIT loadfile 语法仍通过。
+- 机制：AddInventoryItemAtlas 触发图集纹理加载，prefab 注册阶段时序中断 → 文件未返回函数。
+- 修复：prefab 文件内只保留 **RegisterInventoryItemAtlas**（纯元数据注册）；AddInventoryItemAtlas 放 modmain 时机或 pcall 包裹。改完必查 [PREFAB][ERR]。
+
+**③ 无 inventoryitem 实体的图标 fallback 渲染 → 空纹理 → 引擎级闪退（无 Lua error）**
+- 机制：前端预览/图鉴/槽位 fallback 渲染图标 → 引擎按 prefab 名自动解析 → 原版图集无 region → 空纹理 → 引擎渲染路径崩溃。
+- 修复：mod 图集补同名 region（复制同物品 UV）+ RegisterInventoryItemAtlas；**"无 Lua error 闪退"先搜 region 缺失**。
+
+**④ 多 mod 扩展 player_classified 冲突（能力勋章）**：另一 mod `FW_LoadPrefabs requested=113 added=0`（prefab 全未注册）→ 它加的 Startbell 方法/net 变量缺失 → nil 崩 + net 反序列化失败。排查：**实体字段归属判断**（txk_light_shield=本 mod / medal_*=勋章 mod）；[PREFAB][ERR] 只报某 mod 文件 = 该 mod 自身加载失败，勿归因邻居。
+
+### 7.34 ★ 柠版跃迁/传送通道全案（丰耘秘境凶险手杖/护甲地图跳跃，v14.52-v14.67，15 轮实测终解）
+
+**1. ★ 柠版 ThePlayer 状态机组件链三级全 nil（决定性事实）**
+- 日志实证：player.sg=nil / player.components.stategraph=nil / player:GetComponent("stategraph")=nil。
+- 推论：**任何 GoToState 类方案（含丰耘状态图 hmr_blinkin/hmr_blinkout、hmrblinker:BlinkTo 内部 GoToState）在柠版必然失败**。
+- 传送必须直接改坐标：player.Physics:Teleport(x,y,z) + Transform:SetPosition 兜底（pcall）。
+
+**2. ★ 传送通道选型结论表（实测排序）**
+
+| 通道 | 单机/主机 | 客机管理员 | 客机非管理员 | 距离限制 | 依据 |
+|---|---|---|---|---|---|
+| DoTouchSpecialAction（轮盘框架） | ✅ | ✅ | ✅ | ≈150 内置上限 | v14.54 实测 |
+| ExecuteConsoleCommand（引擎控制台） | ✅ | ❌ | ❌ | 无 | TMIR 单机 |
+| TheNet:SendRemoteExecute | — | ✅ | ❌ | 无 | TMIR 客机管理员 |
+| **SendModRPCToServer 普通 Mod RPC** | ✅ | ✅ | ✅ | 无 | **复活与传送按钮实证，终选** |
+
+- 终解 = **普通 Mod RPC 单通道**（主机/客机统一、无管理员/控制台依赖）；服务器 handler 内 BlinkIn() → Teleport → BlinkOut()。DoTouchSpecialAction 内置限距来自移动端框架，Lua 层无法解除；全图跳跃必须绕开它走 RPC。
+
+**3. ★ 消耗复用组件模式（勿重写消耗逻辑）**
+- 恐怖粘液/耐久消耗在 terror_staff.lua 的 onblinkin 回调（slot1 粘液 stackable 减 1 + finiteuses:Use(1)），由 player.components.hmrblinker:BlinkIn() 触发（按 current_source 回调）。
+- RPC handler 标准形态：
+```lua
+AddModRPCHandler("HMR", "HMR_BLINK_JUMP", function(player, px, py, pz)
+    if player ~= nil and player:IsValid() then
+        local x, y, z = px or 0, py or 0, pz or 0
+        if player.components.hmrblinker ~= nil then
+            pcall(function() player.components.hmrblinker:BlinkIn() end)  -- 消耗粘液+耐久+fx_in
+        end
+        pcall(function() player.Physics:Teleport(x, y, z) end)
+        pcall(function() player.Transform:SetPosition(x, y, z) end)
+        if player.components.hmrblinker ~= nil then
+            pcall(function() player.components.hmrblinker:BlinkOut() end) -- fx_out（目标点）
+        end
+    end
+end)
+```
+- 没粘液也照常传送（PC 原版行为），不卡跳。护甲逃生跃迁（OnMinHealth→BlinkTo）无 onblinkin（只扣护甲耐久）。
+
+**4. ★ 客户端动画序列（无状态机方案）**
+- AnimState:PlayAnimation + DoPeriodicTask(FRAMES) 轮询 AnimDone() 推进；每段**超时兜底 tick>45（1.5s）**自动跳过（动画缺失/被玩家循环覆盖不卡死）；播完恢复 idle。
+- 动画：wortox_portal_jumpin_pre → jumpin → jumpout（骑乘换 boat_jump_pre/loop/pst）；**特效主体 = BlinkIn/BlinkOut 生成的 fx prefab**（服务器生成广播，客户端可见）。
+
+**5. ★ 柠版 strict 局部变量自引用坑（v14.66 实测闪退）**
+- `local task = player:DoPeriodicTask(x, function() ... task:Cancel() ... end)` → 初始化表达式求值时 task 未进入作用域 → strict 报 `variable 'task' is not declared`。修复：**先声明后赋值**（local task; task = ...，闭包内判空）。
+
+**6. 动画缺失判断（低频非崩溃，勿过度修）**
+- Could not find anim [ground_idle/ground_place] in bank [honor_cookpot] = PC 原版固有（原版 zip 没做放置段），引擎静默忽略，不修（需美术资源）。
+- 丰耘云端代理 CURL ERROR [7] Failed to connect（nnqq.com.cn/fymj/proxy）= 网络环境项，本地功能有兜底，不影响。
+
+**7. 交互铁律**：兜底 return {} 注入（如大炮 GetCannonAimActions）会**卡全图交互**（无交互按钮/物品无法拾取）——宁可不兜底，删除兜底恢复交互（v14.52 实证）。

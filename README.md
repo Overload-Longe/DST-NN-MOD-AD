@@ -1,6 +1,6 @@
 # DST-NN-MOD-AD —— 柠版（手机端 DST）Mod 适配技能库
 
-> 由《传奇武器附魔强化》PC→柠版长期适配实战沉淀。供其他 AI / 开发者直接加载使用。
+> 由《传奇武器附魔强化》《丰耘秘境》PC→柠版长期适配实战沉淀。供其他 AI / 开发者直接加载使用。
 > 仓库：Overload-Longe/DST-NN-MOD-AD
 
 ## 三块内容
@@ -15,7 +15,7 @@
 
 ```
 dst-mod-dev/
-├── SKILL.md                        # 主技能（v1.9.8 压缩版，AI 加载入口）
+├── SKILL.md                        # 主技能（v1.9.9 压缩版，AI 加载入口）
 ├── references/
 │   ├── common_bug_patterns.md      # 常见 Bug 模式与修复
 │   ├── mod_porting_guide.md        # 移植/兼容性适配指南
@@ -55,6 +55,7 @@ dst-mod-dev/
 8. **打包**：zip 内套 mod 文件夹 + 全正斜杠 + compresslevel=6
 9. **按钮/触摸**：FW_RegisterModButton（必传 character）；自定义滚动条 → TEMPLATES.ScrollingGrid
 10. **词法坑**：`endlocal` 粘连、尾 BOM（\ufeff）→ mod 被禁用/卡加载；先搜 `Disabling <mod>` 排除上游
+11. **跃迁/传送**：柠版状态机组件链三级 nil → GoToState 不可行；传送统一走**普通 Mod RPC**（SendModRPCToServer，主机/客机一致）；消耗复用组件回调（BlinkIn/BlinkOut），客户端动画 AnimState+轮询
 
 ## 实战沉淀索引（SKILL.md §7 / docs §20-§30）
 
@@ -68,7 +69,9 @@ dst-mod-dev/
 - §7.30 丰耘秘境（加密皮肤/全解锁/图鉴/Replica 时序）
 - §7.31 柠版 nil 防护全景（strict/setfenv/ToolUtil）
 - §7.32 endlocal 词法粘连 + Insight 注入排查
-- §30 传奇武器实战六条沉淀（endlocal/Insight/召唤提示/图标兜底/BGM 删除/贴图降级）
+- §7.33 传奇武器闪退全案（inventoryitem 时序/prefab 加载失败/图标 fallback 空纹理/player_classified 冲突）
+- §7.34 柠版跃迁/传送通道全案（状态机 nil→普通 Mod RPC 单通道/消耗复用/动画序列/strict 自引用坑）
+- §30 传奇武器实战沉淀（endlocal/Insight/召唤提示/图标兜底/BGM 删除/贴图降级/inventoryitem 时序/跃迁通道 §30.10）
 
 ## 使用方式（给其他 AI）
 

@@ -202,3 +202,6 @@
 
 ## 30. 《传奇武器附魔强化》PC→柠版实战沉淀（2026-09-27，长期维护）
 > 子节：30.1 ★ endlocal 词法粘连 = mod 被禁用（同类词法坑，与 §28 尾 BOM 并列） / 30.2 ★ Insight/全能信息面板注入失效排查（dyc_panel_compat） / 30.3 召唤 boss prefab 缺失 → 明确提示（外部模组依赖） / 30.4 ★ mod 自定义 prefab 图标兜底（GetImageAsset 找不到 → custom_xml/custom_tex） / 30.5 BGM 删除优化体积（接口保留） / 30.6 外部模组 boss 贴图降级（use_text_display） / 30.7 ★ inventoryitem 组件时序：SetPristine 前加组件 = 前端 Spawn 即崩（v3.22 闪退全案） / 30.8 ★ prefab 文件内 AddInventoryItemAtlas → "prefab file is not callable"（加载失败 ≠ 语法错误） / 30.9 ★ 图标 fallback 空纹理 = 引擎级闪退（无 Lua error）+ 多 mod 扩展 player_classified 冲突 / 30.10 ★ 柠版跃迁/传送通道全案（丰耘凶险手杖/护甲，v14.52-v14.67 终解）：状态机组件链三级 nil→GoToState 不可行 / 通道选型表（DoTouchSpecialAction 限距≈150 / ExecuteConsoleCommand 仅主机 / SendRemoteExecute 仅客机管理员 / 普通 Mod RPC 单通道终选） / 消耗复用 hmrblinker:BlinkIn/BlinkOut（onblinkin=粘液+耐久+特效） / 客户端动画 AnimState+DoPeriodicTask 轮询 AnimDone（1.5s 超时兜底） / strict 局部变量自引用坑=先声明后赋值 / 兜底 return {} 卡全图交互铁律
+
+## 32. ★ 虚空异界（泰拉）整包适配好版全案（2026-10-03）
+> 子节：32.1 轮盘施法三型模板（A 拖动持续/B 拖动选点松开/投掷周期索敌） / 32.2 unpack_pos 两路兼容 / 32.3 RPC 双端 + 白名单 / 32.4 ★ 星衍巨镰"暂时做不到"终解（spell_id 本地状态 → select RPC 同步 + 服务器兜底） / 32.5 ★ mod 角色皮肤选择三件套（ValidateSpawnPrefabRequest hook + 持久化 + CheckOwnership） / 32.6 ★ 背包注入终解（删独立文件 + 底板不拉伸 + FeiyingStateKey 闸门） / 32.7 modmain Prefab 包装补 ATLAS_BUILD / 32.8 worldgen 专属游戏模式注入 / 32.9 大 hook 文件组织模式 / 32.10 适配好版目录事实

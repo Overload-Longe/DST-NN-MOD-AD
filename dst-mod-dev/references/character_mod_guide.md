@@ -89,11 +89,10 @@ GLOBAL.setmetatable(env, { __index = function(t, k) return GLOBAL.rawget(GLOBAL,
    - 小红帽蕾克手工版示例：`FW_PreloadAssets(modname, { "anim/lake.zip", "anim/ghost_lake_build.zip", "anim/swap_wuqi.zip", "anim/lake1.zip", "anim/lake2.zip", ... })`
 2. **FW_LoadPrefabs 替代 PrefabFiles**（小红帽蕾克实证）：
    `GLOBAL.FW_LoadPrefabs(modname, { "lake", "lake_none", "book_shu", ... })`
-3. **加密/分片加载**（蟾宫神使玉兔实证）：`kleiloadlua` + `setfenv`，RunModFile 依次跑 `modmain_decrypted.lua` / `modclientmain.lua`。
-4. **专属 UI/技能按钮**（不灵小姐实证）：`AddPlayerPostInit` → `MobileUI.ScheduleButtonMount(player)`；HUD 元素 `MobileUI.RegisterUI(widget, key, w, h)`。
-5. **声音**：10 个已带 sound_banks_auto.lua（千年狐/格温/晓美焰/橘/米塔/玉兔/威尔顿/以斯拉/雪露/小樱）。
-6. **按键/键盘事件**走 ModRPC（千年狐实证）：`AddModRPCHandler("wharang", "keyhandler", ...)`。
-7. **纯增强 mod**（无 anim）无需纹理/early_prefab，只需 mod_auto + preload_assets。
+3. **专属 UI/技能按钮**（不灵小姐实证）：`AddPlayerPostInit` → `MobileUI.ScheduleButtonMount(player)`；HUD 元素 `MobileUI.RegisterUI(widget, key, w, h)`。
+4. **声音**：10 个已带 sound_banks_auto.lua（千年狐/格温/晓美焰/橘/米塔/玉兔/威尔顿/以斯拉/雪露/小樱）。
+5. **按键/键盘事件**走 ModRPC（千年狐实证）：`AddModRPCHandler("wharang", "keyhandler", ...)`。
+6. **纯增强 mod**（无 anim）无需纹理/early_prefab，只需 mod_auto + preload_assets。
 
 ## 排障速查
 
@@ -102,7 +101,6 @@ GLOBAL.setmetatable(env, { __index = function(t, k) return GLOBAL.rawget(GLOBAL,
 | 角色本体/鬼魂/手持空白 | early_prefab_auto.lua 是否含 `<name>.zip` / `ghost_<name>_build.zip` / `swap_<武器>.zip` 三条 |
 | 角色可选但进图白名 | PrefabFiles 是否被 FW_LoadPrefabs 正确接管；mod_auto asset_case_aliases 是否含角色资源 |
 | 技能按钮/专属 UI 不显示 | 是否走 FW_RegisterModButton / MobileUI 挂载；注册时机是否在 UI 实例化后 |
-| 加密 mod 卡加载 | RunModFile 的 kleiloadlua 路径是否与 mods/<mod名>/ 实际一致 |
 | 原版角色增强无效果 | 是否 AddComponentPostInit 覆盖了组件方法且保留旧函数 |
 
 

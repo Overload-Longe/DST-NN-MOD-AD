@@ -1,81 +1,53 @@
-# DST-NN-MOD-AD —— 柠版（手机端 DST）Mod 适配技能库
+# DST-NN-MOD-AD
 
-> 由《传奇武器附魔强化》《丰耘秘境》PC→柠版长期适配实战沉淀。供其他 AI / 开发者直接加载使用。
-> 仓库：Overload-Longe/DST-NN-MOD-AD
+柠版（手机端 DST）Mod 适配技能与实战资料，供开发者和 AI 查阅。
 
-## 三块内容
+## 仓库导航
 
-| 目录 | 内容 | 说明 |
-|---|---|---|
-| `dst-mod-dev/` | **技能包**（SKILL.md + references 知识库 + tools 工具） | AI 加载 `dst-mod-dev/SKILL.md` 即获得完整适配方法论 |
-| `docs/` | 柠版适配 API 文档 | 完整版 341KB 超单文件推送上限，仓库收录**精要版**（章节导航） |
-| `传奇武器附魔强化/` | 实战 mod 文本源码（测试占位） | 完整源码 zip 交付（见交付记录），仓库放代表文件供结构参考 |
+| 目录 | 内容 |
+|---|---|
+| [dst-mod-dev/](dst-mod-dev/) | 技能入口、参考资料与部分辅助工具 |
+| [docs/](docs/) | API 文档导航 |
+| [传奇武器附魔强化/](传奇武器附魔强化/) | 实战 Mod 文本示例，不能视为完整可运行分发包 |
 
-## dst-mod-dev/ 技能包结构
+从 [技能说明](dst-mod-dev/SKILL.md) 开始，再按问题查阅参考资料。历史案例受框架版本和具体 Mod 限制，不应直接作为所有 Mod 的通用补丁。
 
+## 当前资料基线
+
+作者本机维护的适配器源码为 **v1.6.7**，完整 API 文档为 **v2.2（2026-10-30）**，基线 APK 为 **2.3.1-10.23.22**。这些版本信息不代表仓库内的历史参考资料与辅助脚本已经同步更新。
+
+本机权威工具目录为 `C:/Users/Longe/下载/工具转换`，适配器为其中的 `柠版mod转换工具/dst_mobile_adapter.py`。这是作者的本地路径，其他使用者需取得工具并设置自己的路径。此前 README 中的 Doubao 技能目录是历史副本位置，不应作为当前工具来源。
+
+仓库目前未包含完整适配器与完整 API 主文档。需要执行完整转换或核对 API 签名时，请先向作者取得对应版本。历史上传工具的单次提交限制不等于 GitHub 的通用文件大小限制。
+
+## 适配时必须核对的契约
+
+1. **纹理**：检查真实 KTEX 编码、flags 与集中 mip 表，不能只改文件头伪装 ASTC。优先使用当前工具；历史摘要中的 `flags=4` 不能作为通用头格式规则。柠版纹理还有上下翻转约定。
+2. **动画**：`early_prefab_auto.lua` 同时承担 build 驻留与缺失资源回退索引，应覆盖每个实际可加载的动画包。嵌套 ZIP、空包和开发备份不应机械注册。`modmain.lua` 的 Assets 也参与加载，但不能替代 build 驻留。
+3. **自动注册表**：增删资源后，先用当前工具的 `--verify-auto` 检查，再在产物副本执行 `--sync-auto`。该刷新模式默认原地处理，执行前先看 `--help`。
+4. **编码**：声音与别名清单使用 UTF-8 无 BOM + LF；其他生成文件遵循当前工具与主文档的对应约定，不对所有 Lua 文件套用同一条编码规则。
+5. **Lua 环境**：strict 环境中读取可能不存在的 GLOBAL 字段使用 `rawget`。worldgen 与 modmain 环境不同，不能直接照搬加载链。
+6. **FW_ API**：按目标框架版本核对签名和返回值。稳定分发器即使模块关闭也可能仍为 function，不能只检查函数存在；可选能力另做存在性检测。
+7. **触摸 UI**：区分框架自动编辑层与手动注册，避免双编辑框。按钮、施法、滚动和关闭缩放应在手机端验证。
+8. **多 Mod 联用**：用当前工具的 `--audit-aliases` 检查跨 Mod 别名冲突，并核对声音 bank 配对与人工别名。
+
+## 执行与验收
+
+取得完整工具后，先确认 Python 解释器可用并查看帮助：
+
+```powershell
+py -V
+py "<工具目录>/柠版mod转换工具/dst_mobile_adapter.py" --help
 ```
-dst-mod-dev/
-├── SKILL.md                        # 主技能（v1.9.9 压缩版，AI 加载入口）
-├── references/
-│   ├── common_bug_patterns.md      # 常见 Bug 模式与修复
-│   ├── mod_porting_guide.md        # 移植/兼容性适配指南
-│   ├── mod_structure.md            # 标准结构/模板
-│   ├── dst_api_quickref.md         # DST API 速查
-│   ├── ui_modification_guide.md    # UI 修改指南
-│   ├── api_usage_statistics.md     # 100 模组 API 使用统计
-│   ├── real_mod_patterns.md        # 真实模组实现手法
-│   ├── mobile_porting_guide.md     # 柠版移动端适配专项（核心）
-│   └── character_mod_guide.md      # 人物 Mod 适配专项
-└── tools/
-    ├── convert_dxt5_to_rgba.py     # DXT5→RGBA 纹理修复（可运行）
-    ├── 柠版一键适配.bat            # 拖拽一键适配入口
-    └── dst_mobile_adapter.py       # 全功能一键适配器（187KB，超单文件上限未入库，见下）
+
+若启动器提示 `No installed Python found`，请安装 Python 或使用已有解释器的完整路径。
+
+默认转换到独立目录，保留输入：
+
+```powershell
+py "<工具目录>/柠版mod转换工具/dst_mobile_adapter.py" "<Mod目录或ZIP>" --out "<新输出目录>" --zip
 ```
 
-## 未入库的大文件（本地完整版位置）
+交付前检查资源引用、自动注册表和 ZIP 根目录；有合适的 Lua 工具时检查语法。工具转换成功不能代替游戏实测，应分别记录本机检查、模拟测试和目标手机验证结果。
 
-| 文件 | 大小 | 未入库原因 | 本地位置 |
-|---|---|---|---|
-| `dst_mobile_adapter.py`（完整源码） | 187KB | 超单文件推送上限 | `C:\Users\Longe\AppData\Local\Doubao\User Data\Default\.doubao\agent_mode\workspace\.user_skills\dst-mod-dev\tools\` |
-| `柠版适配API文档.md`（完整版） | 341KB | 同上（仓库已收录精要版） | `C:\Users\Longe\下载\工具转换\` |
-| `dst-mod-creater/`（第三方配套知识库） | 36MB / 635 文件 | 二进制+体积（MIT 许可独立包） | 同上 skills 目录内 |
-| mod 完整源码（326 文件） | 4.3MB zip | 二进制+数量 | 交付包：`C:\Users\Longe\下载\传奇武器附魔强化-柠版适配版.zip` |
-
-需要以上完整文件时，直接向作者（Overload-Longe）索取即可。
-
-## 核心适配规范摘要（详见 SKILL.md / mobile_porting_guide.md）
-
-1. **纹理**：全部转 ASTC 8x8 单 mip（KTEX comp=24, flags=4）；自建图集一律 ASTC，禁用 RGBA（Mali GPU 0x500 实测）
-2. **编码**：`.lua` 必须 UTF-8 BOM + CRLF；禁止 decode+join+encode 整文件重建（尾 BOM 语法炸弹）；`sound_banks_auto/tile_preload_auto` 无 BOM
-3. **动画**：`early_prefab_auto.lua` = 柠版动画唯一有效通道——anim/ 目录**每个 zip 一条**（含 swap/皮肤）
-4. **图标**：原版物品图标改 `recipe.atlas` 指柠版原版图集（无子目录路径）；mod 自定义 prefab 补 `custom_xml/custom_tex`
-5. **strict 环境**：`GLOBAL` 字段裸读报 not declared → `rawget`；挂载点 API（AddRecipe2 等）在 modmain env 不在 GLOBAL
-6. **Lua 5.1→5.2**：裸 `arg` → 注入 `local arg={...}`；`unpack(arg)` → `unpack({...})`
-7. **手机端施法**：右键点实体 = point 施法 target=nil + pos 表 → 两路解析
-8. **打包**：zip 内套 mod 文件夹 + 全正斜杠 + compresslevel=6
-9. **按钮/触摸**：FW_RegisterModButton（必传 character）；自定义滚动条 → TEMPLATES.ScrollingGrid
-10. **词法坑**：`endlocal` 粘连、尾 BOM（\ufeff）→ mod 被禁用/卡加载；先搜 `Disabling <mod>` 排除上游
-11. **跃迁/传送**：柠版状态机组件链三级 nil → GoToState 不可行；传送统一走**普通 Mod RPC**（SendModRPCToServer，主机/客机一致）；消耗复用组件回调（BlinkIn/BlinkOut），客户端动画 AnimState+轮询
-
-## 实战沉淀索引（SKILL.md §7 / docs §20-§30）
-
-- §7.21 手机端点选施法 target=nil
-- §7.22 超宽屏容器格子偏左（对照 PC 原版源码）
-- §7.23 弹射伤害时有时无（绕过 GetAttacked 直接 DoDelta）
-- §7.24 CollectSpDamage 不工作（hook 手动补 planardamage）
-- §7.25/§7.27 FROMNUM 哨兵 / 原版动画直接引用 APK
-- §7.28 尾 BOM 语法炸弹
-- §7.29 头顶等级显示（直接抄原版实现）
-- §7.30 丰耘秘境（加密皮肤/全解锁/图鉴/Replica 时序）
-- §7.31 柠版 nil 防护全景（strict/setfenv/ToolUtil）
-- §7.32 endlocal 词法粘连 + Insight 注入排查
-- §7.33 传奇武器闪退全案（inventoryitem 时序/prefab 加载失败/图标 fallback 空纹理/player_classified 冲突）
-- §7.34 柠版跃迁/传送通道全案（状态机 nil→普通 Mod RPC 单通道/消耗复用/动画序列/strict 自引用坑）
-- §30 传奇武器实战沉淀（endlocal/Insight/召唤提示/图标兜底/BGM 删除/贴图降级/inventoryitem 时序/跃迁通道 §30.10）
-
-## 使用方式（给其他 AI）
-
-1. 读取 `dst-mod-dev/SKILL.md` 获得完整工作流与触发边界
-2. 排障/适配时按需读取 `references/` 对应文件
-3. 需要执行适配时：本地安装 `dst_mobile_adapter.py` 完整版（向作者索取），或用 `convert_dxt5_to_rgba.py`（已入库可直接运行）
-4. 深度知识查 `docs/柠版适配API文档-精要版.md` 章节导航，细节回查完整版
+修复应以日志与实际调用链为依据。历史案例中的传送、伤害、皮肤与时序处理须逐项确认适用性，不自动注入大范围补丁，也不使用大范围 `pcall` 隐藏错误。

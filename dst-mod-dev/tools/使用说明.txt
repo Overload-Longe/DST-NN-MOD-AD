@@ -1,0 +1,150 @@
+本工具版本：v1.6.7（2026-10-28）
+──────────────────────────────────────────
+v1.6.7 新增（自动文件一致性治理，虚空异界实证）：
+  ★ --sync-auto：只重生成自动文件（mod_auto / early_prefab / preload_assets /
+    sound_banks / tile_preload），跳过纹理、兼容层、规则、postfix、编码、图集修正。
+    默认原地刷。资源增删后跑它就能修「注册表陈旧」——
+    early_prefab_auto.lua 是生成那一刻 anim/ 的快照，框架不会自己发现新资源；
+    原地不动就会漏注册（泰拉漏 6 个 build，全是 prefab 里 Asset("ANIM") 显式声明的，
+    表现为陨石/流星法杖特效整片空白）。
+  ★ --verify-auto：只读体检（深扫 anim/），报告漏注册 / 悬空条目 / sound_banks
+    schema 不合法 / preload 写了非 .xml / entrypoints 与文件不符 / 嵌套 zip /
+    内容重复 zip / .autosave 残留。有 ERROR 退出码 1，可进 CI。
+  ★ --prune-dev：清运行时用不到的开发者残留（anim/*.autosave.zip、sound/source/、
+    *.fdp/*.log），只动输出副本。
+  ★ gen_test() 升级到 contract v3（原先是裸数组，没有 contract_version / surface /
+    steps，框架自测面板收得到名字但拿不到套件）；断言从 type(FW_xxx)=="function"
+    的空检改成「调用 FW_DiagnoseFailures 看返回字符串」——46 个稳定分发器在框架
+    Setup 时无条件 rawset，type() 恒 function，判它等于没判。
+  ★ early_prefab 注册表过滤 .autosave.zip 与「无 build.bin 也无 anim.bin」的空壳包
+    （泰拉 8 个自动备份包 + whip_snapthorn 只有一个 atlas，注册进去只白占
+    FW_EARLY_HOLDER 槽位）；无 scripts/prefabs 的纯素材 mod 现在也会生成。
+  ★ preload_assets_auto.lua 不再写 modicon.tex（框架 lazy_atlas 清单只吃 .xml）。
+  ★ --sync-auto 保留既有 identity_aliases（不传 --id 也不会把 workshop-id 冲掉），
+    且不覆盖已存在的 test.lua（人工契约不被机械重建冲掉）。
+  ★ 转换结束自动跑一次自检，当场打印 ERROR / WARN，不用等玩家反馈「动画空白」。
+
+v1.6.6 修复（modinfo.name 含路径分隔符污染目录身份，虚空异界实证）：
+  ★ 新增 mod_fs_name()：把 modinfo.name（显示名）与"目录身份名"分开。
+    modinfo.name 可能是 "虚空异界（泰拉）/Void Realm"，旧版直接拿它当目录名 →
+    scripts/mods/<显示名>/... 变成两级子目录、输出目录与 zip 内层目录也带斜杠，
+    框架报 invalid asset alias owner / 找不到 mod，zip 解压后层级错乱。
+    现在：路径前缀 / FW_* 注册名 / 输出目录 / zip 内层目录一律用
+    mod_fs_name(name)（取斜杠前第一段 + 去 Windows 非法字符）；
+    identity_aliases 与 autotest_suite 保留 modinfo.name 原样（框架身份别名）。
+  ★ identity_aliases 现在同时写 workshop-id 与 modinfo.name 原样（两者都非空时）。
+  ★ zip 条目改正斜杠（旧版 os.path.join 在 Windows 生成反斜杠条目）。
+  ★ sound_banks_auto.lua 的 modname 字段改用目录身份名（框架按 owner 匹配）。
+
+v1.6.5 更新（2026-10-16）：
+  ★ mod_auto.lua 的 entrypoints["modworldgenmain.lua"] 改为按实际文件探测
+    （原先硬编码 false → 带世界生成的 mod 适配后静默丢地图）。
+
+v1.6.4 更新（asset_case_aliases 跨 mod 撞键治理，泰拉+传奇武器实证）：
+  ★ 死动画过滤：gen_mod_auto 新增 anim_refs（collect_anim_code_refs 源码引用
+    扫描），anim/ 下"源码零引用"的 zip 不再写入 asset_case_aliases —— 别名表
+    是框架全局合并（大小写不敏感），两个 mod 含同名死动画 zip（泰拉/传奇武器
+    hh_slot_fx）即 ambiguous asset case alias 崩溃；零引用别名无运行时请求者，
+    删除纯清理全局表，动画加载不受影响（early_prefab 仍全量注册）。
+  ★ --audit-aliases <路径> 审计模式：扫描多个已适配 mod（目录/zip）的
+    mod_auto.lua，报告跨 mod 撞键（同 key 不同 value），装机前预检。
+  ★ --keep-dead-anims：关闭死动画过滤（安全阀，默认开启过滤）。
+
+v1.6.3 修复（用户指出的 bit9 关键问题）：
+  ★ 纹理转换 ASTC 头 flags 补 bit9=1（0xFFF02180 → 0xFFF02380）——
+    柠版 2.1.1 成功 mod（更多料理 v3.44/AIP v3.40）全部 tex 逐字节实证
+    bit9=1 是 Mali 管线必需位；旧值 bit9=0 虽能加载但存在"格式可疑"边缘问题。
+    py 级与 exe 级双重实测验证（fm.tex / esctemplate.tex → 0xFFF02380 PASS）。
+  ★ exe 重新打包：顶层 柠版适配工具.exe 已重建为 v1.6.3（PyInstaller 6.22.2，
+    内嵌本版主工具，不再是 9/15 的 v1.6.0 旧快照）。
+
+v1.6.2 更新（工具整理优化）：
+  原版图集静态表自动选新：默认加载 vanilla_atlas_jh210.json（2.1.0 APK，6622 region），
+  jh142（1.4.2，5823 region）兜底；新增 --atlas <json> 参数显式指定。
+  （此前写死只读 jh142——更新版 APK 图集/region 位置差异会漏修）
+
+v1.6.1 修复（真实 mod 三件套回归抓到的 bug）：
+  1. modname 解析：多语言表 modinfo（name = ChooseTranslationTable(STRINGS.NAME)）
+     不再误取配置项 name（更多料理曾解析成 LANGUAGE）→ 行首锚定 + zh/英文提取
+  2. LDR RGB（KTEX comp=5）纹理支持（更多料理 colourcube 4 个转换失败修复）
+  3. 转换失败明细：convert_bytes 返回 None 也记录原因（不再只有计数无明细）
+
+柠版 Mod 一键适配工具 v1.6.4
+整理：神似
+
+============================================
+一、这是什么
+============================================
+把 Steam 创意工坊（PC 端）的《饥荒联机版》Mod 一键适配成柠版（手机端 DST）可用的版本：
+纹理转换（DXT5/RGBA → ASTC 8x8）、全量编码统一（UTF-8 BOM + CRLF）、自动文件生成
+（mod_auto / early_prefab / preload_assets / sound_banks / tile_preload / test）、
+Lua5.1 兼容修复、通用规则（柠版按钮自动注册 / 配方 hook / FW_RegisterAction 成对注入）、
+生命周期任务重写（FW_ 托管）、触摸管线兼容（OnTouchLong/手势）、角色框架
+（FW_RegisterCharacter 自动生成）、滑动/滑块触摸适配、防御规则新增
+SpawnPrefab 链式调用判空（行首 SpawnPrefab(x).Method 拆两行判空，Forge 专属
+prefab 缺失→nil 崩溃通用修复）、worldgen 链 _G 别名注入（隔离 env 无裸 Lua 内置）、
+原版图集修正（读静态表 vanilla_atlas_*.json 改 recipe.atlas 指柠版原版图集）、打包 zip。
+
+★ v1.6.0（P0 升级）：
+  1) 默认 native 纯原生模式（手工适配 mod 同构：无资源副本、无 FW_ 注入）——
+     AIP 兼容层 17.68MB 全问题 → native 9.08MB 全好实证；旧兼容层模式用 --legacy-compat 显式切回。
+  2) 全量 .lua 编码统一 UTF-8 BOM + CRLF（柠版加载器格式敏感，更多料理 559 文件实证）；
+     流程末尾有收尾统一（注入步骤改写文件后最终兜底）。
+  3) worldgen 链 _G 别名：modworldgenmain modimport 链文件顶部注入
+     local pcall/type/pairs/ipairs/tostring = _G.xxx（隔离 env 无裸内置，terrain 实证）。
+  4) 原版图集修正：读工具目录 vanilla_atlas_jh142.json（647 图集/5823 region 静态表），
+     扫 recipe 的 image → 命中即生成 postinit/<mod>_vanilla_atlas.lua 改 recipe.atlas
+     指柠版原版图集（路径无子目录 + region 位置差异，更多料理 4 鱼 5 版本教训）。
+     APK 更新时用 --rebuild-atlas --apk <APK> 重建表（日常转换零解包成本）。
+★ v1.5.2：防御规则新增 SpawnPrefab 链式调用判空（心之钢 lavaarena_firebomb_explosion
+   Forge 专属 prefab 缺失→nil 索引崩溃的通用修复）。
+★ v1.5.1 安全说明：输出目录有防误删守卫——只有"*-柠版适配版"命名的目录会被
+覆盖重建；保存位置若指向其他已有内容的目录，工具会改在其下新建子目录输出，
+绝不会清空你选择的目录。
+
+============================================
+二、使用方法（GUI 版：柠版适配工具.exe）
+============================================
+1. 双击 exe 打开界面
+2. 「选择zip」或「选择文件夹」：选 PC 端 Mod（zip 压缩包或 Mod 文件夹）
+3. 「选择文件夹」（保存位置）：选输出目录（Mod 文件与保存位置各自记忆，互不串）
+4. 按需勾选处理流程（全部可勾选；native 纯原生模式默认勾选）
+5. 并发数：选「自动」或 1~8（大 Mod 内存紧张可调小）
+6. 点「开始转换」；进度条显示纹理转换进度，下方日志实时输出
+7. 转换完成后点「打开输出文件夹」查看产物
+8. 取消：点「取消」将在当前阶段检查点中断
+
+============================================
+三、命令行版（可选）
+============================================
+拖拽用法：把 zip 或文件夹拖到「柠版一键适配.bat」上松开。
+命令行：python dst_mobile_adapter.py <Mod目录或zip> [--out 输出目录] [选项]
+常用选项：
+  --native          纯原生模式（v1.6.0 起默认开启，无需显式传）
+  --legacy-compat   显式切回旧兼容层模式（高风险，仅复现旧产物用）
+  --zip             处理完打包 zip（内套一层 mod 文件夹）
+  --no-tex          跳过纹理转换        --no-compat  跳过兼容层
+  --no-rules        跳过通用规则        --no-postfix 跳过 Lua5.1 修复
+  --no-defensive    跳过防御性修复      --no-scroll  跳过滑动/滑块适配
+  --no-autofiles    跳过自动文件生成    --no-key-buttons 跳过按键技能按钮
+  --no-lifecycle    跳过生命周期任务重写  --no-touch-pipeline 跳过触摸管线兼容
+  --no-encoding     跳过全量编码统一（默认自动 BOM+CRLF）
+  --no-atlas-fix    跳过原版图集修正（默认读 vanilla_atlas_*.json 自动修）
+  --touch-scroll    启用触摸滚动注入（滑块/滑动区域）
+  --workers N       纹理转换并发数（默认 min(CPU,6)）
+  --progress        输出 PROGRESS:n/total（GUI 进度条用）
+  --rebuild-atlas --apk <柠版APK路径>   重建图集静态表（APK 更新时执行一次）
+
+============================================
+四、安装到柠版
+============================================
+把打包出的 zip 解压，将里面的 Mod 文件夹拷贝到模拟器柠版的 mod 目录即可
+（解压拷贝到对应 mods 目录即可）。
+
+★ 文件夹名铁律（v1.6.6）：mods 目录下的文件夹名必须 == mod 名
+  （即 <mod名>，**不带** -柠版适配版 后缀）。
+  框架 resources/asset_resolver.lua 会校验 mod_auto.lua 里
+  asset_case_aliases 的每个值必须以 scripts/mods/<已安装文件夹名>/ 开头，
+  路径里的 owner 是转换时写死的、不会跟着改名走。把 "虚空异界（泰拉）-柠版适配版"
+  这种构建目录原样拷进去 → 报 invalid asset alias owner，动画/贴图/音效全丢。
+  正确做法：解压 zip（内层文件夹已是正确名字），或把构建目录重命名后再拷。

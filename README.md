@@ -18,7 +18,7 @@
 
 本机权威工具目录为 `C:/Users/Longe/下载/工具转换`，适配器为其中的 `柠版mod转换工具/dst_mobile_adapter.py`。这是作者的本地路径，其他使用者需取得工具并设置自己的路径。此前 README 中的 Doubao 技能目录是历史副本位置，不应作为当前工具来源。
 
-仓库目前未包含完整适配器与完整 API 主文档。需要执行完整转换或核对 API 签名时，请先向作者取得对应版本。历史上传工具的单次提交限制不等于 GitHub 的通用文件大小限制。
+仓库已提供[完整适配器源码与使用说明](dst-mod-dev/tools/README.md)，可直接下载使用。完整 API 主文档暂未入库，核对详细 API 签名时请向作者取得对应版本。历史上传工具的单次提交限制不等于 GitHub 的通用文件大小限制。
 
 ## 适配时必须核对的契约
 
@@ -33,11 +33,11 @@
 
 ## 执行与验收
 
-取得完整工具后，先确认 Python 解释器可用并查看帮助：
+下载 `dst-mod-dev/tools/` 中的工具后，先确认 Python 解释器可用并查看帮助：
 
 ```powershell
 py -V
-py "<工具目录>/柠版mod转换工具/dst_mobile_adapter.py" --help
+py "dst-mod-dev/tools/dst_mobile_adapter.py" --help
 ```
 
 若启动器提示 `No installed Python found`，请安装 Python 或使用已有解释器的完整路径。
@@ -45,7 +45,7 @@ py "<工具目录>/柠版mod转换工具/dst_mobile_adapter.py" --help
 默认转换到独立目录，保留输入：
 
 ```powershell
-py "<工具目录>/柠版mod转换工具/dst_mobile_adapter.py" "<Mod目录或ZIP>" --out "<新输出目录>" --zip
+py "dst-mod-dev/tools/dst_mobile_adapter.py" "<Mod目录或ZIP>" --out "<新输出目录>" --zip
 ```
 
 交付前检查资源引用、自动注册表和 ZIP 根目录；有合适的 Lua 工具时检查语法。工具转换成功不能代替游戏实测，应分别记录本机检查、模拟测试和目标手机验证结果。
